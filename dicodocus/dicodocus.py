@@ -7,6 +7,7 @@
 
 import os
 import getopt
+import itertools
 import sys
 from string import ascii_lowercase
 
@@ -21,9 +22,11 @@ min_length = 8
 max_length = 8
 
 pattern_list = []
-character_set = ""
 character_substitutions = {}
 patterns = {}
+pattern_permutations = []
+combined_patterns = []
+passwords = []
 
 
 #
@@ -31,30 +34,13 @@ patterns = {}
 #
 
 def showUsage():
-    print("dicodocus [-c] [-s] [-l <min_length>] [-L <max_length>] [-p <pattern_1>[,<pattern_2[..,<pattern_N>]]] [-C \"<characters>\"]")
+    print("dicodocus [-c] [-s] [-l <min_length>] [-L <max_length>] -p <pattern_1>[,<pattern_2[..,<pattern_N>]]")
     print("    -c: enables case substitution")
     print("    -s: enables character substitution")
-    print("    -l: minimum password length")
-    print("    -L: maximum password length")
+    print("    -l: minimum password length (default = 8, must be > 1 and <= maximum password length)")
+    print("    -L: maximum password length (default = 8, must be >= minimum password length and <= 24)")
     print("    -p: comma-separated list of patterns to be included in password")
-    print("    -C: characters set to be used apart from patterns")
     print("")
-    print("    Note: at least one of pattern list or character set must be defined")
-
-
-def print_pattern(prefix, pattern):
-    if len(pattern) > 0:
-        c = pattern[0]
-        if c in character_substitutions:
-            for n in character_substitutions[c]:
-                aux_pattern = list(pattern)
-                aux_pattern[0] = n
-                new_pattern = ''.join(aux_pattern)
-                print_pattern(prefix + new_pattern[0], new_pattern[1:])
-        else:
-            print_pattern(prefix + pattern[0], pattern[1:])
-    else:
-        print(prefix)
 
 
 def build_patterns(original_pattern, prefix, pattern):
@@ -75,7 +61,6 @@ def build_patterns(original_pattern, prefix, pattern):
             patterns[original_pattern] = [ prefix ]
 
 
-
 #
 # Main
 #
@@ -86,8 +71,7 @@ options, remainder = getopt.getopt(sys.argv[1:],
                                     'flag_character_substitution',
                                     'min_length=',
                                     'max_length=',
-                                    'pattern_list=',
-                                    'character_set='
+                                    'pattern_list='
                                     ])
 
 try:
@@ -97,9 +81,9 @@ try:
         if opt in ("-s"):
             flag_character_substitution = 1
         elif opt in ("-l"):
-            min_length = arg
+            min_length = int(arg)
         elif opt in ("-L"):
-            max_length = arg
+            max_length = int(arg)
         elif opt in ("-p"):
             pattern_list = arg.split(",")
         elif opt in ("-c"):
@@ -109,11 +93,21 @@ except getopt.GetoptError:
     sys.exit(2)
 except:
     showUsage()
-    sys.exit(2)
-
-if len(pattern_list) == 0 and character_set == "":
-    showUsage()
     sys.exit(3)
+
+if len(pattern_list) == 0:
+    showUsage()
+    sys.exit(4)
+
+if (min_length < 4) or (min_length > max_length):
+    showUsage()
+    print(min_length)
+    print(max_length)
+    sys.exit(5)
+
+if max_length > 24 or max_length < min_length:
+    showUsage()
+    sys.exit(6)
 
 if flag_case_substitution == 1:
     for c in ascii_lowercase:
@@ -152,7 +146,35 @@ if flag_character_substitution == 1:
         character_substitutions['O'] = ['O', '0']
         character_substitutions['S'] = ['S', '$']
 
-if len(pattern_list) > 0:
-    for pattern in pattern_list:
-        build_patterns(pattern, "", pattern)
-print(patterns)
+
+for pattern in pattern_list:
+    build_patterns(pattern, "", pattern)
+
+for R in range(0, len(pattern_list) + 1):
+    for permutation in itertools.permutations(pattern_list, R):
+        if len(permutation) > 0:
+            pattern_permutations.append(permutation)
+
+for permutation in pattern_permutations:
+    compound_list = []
+    for original_pattern in permutation:
+        compound_list.append(patterns[original_pattern])
+    
+    res = list(itertools.product(*compound_list)) 
+    for r in res:
+        combined_pattern = ""
+        for e in r:
+            combined_pattern = combined_pattern + e
+        combined_patterns.append(combined_pattern)
+
+L = min_length
+while L <= max_length:
+    for pattern in combined_patterns:
+        reduced_pattern = pattern[:L-1]
+        if reduced_pattern not in passwords:
+            passwords.append(reduced_pattern)
+    L = L + 1
+
+for password in passwords:
+    print(password)
+
