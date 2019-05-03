@@ -2,7 +2,7 @@
 #
 # dicodocus - Password dictionary generator
 # 
-# By Cr1sc0d3r, v0.1 02/05/2019
+# By Cr1sc0d3r, v0.1 03/05/2019
 #
 
 import os
@@ -116,6 +116,7 @@ if flag_case_substitution == 1:
 
 if flag_character_substitution == 1:
     character_substitutions['1'] = ['1', '!']
+    character_substitutions['^'] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
     if flag_case_substitution == 1:
         character_substitutions['a'].append('4')
@@ -170,7 +171,12 @@ for permutation in pattern_permutations:
 L = min_length
 while L <= max_length:
     for pattern in combined_patterns:
-        reduced_pattern = pattern[:L-1]
+        if len(pattern) < L:
+            continue
+        elif len(pattern) > L:
+            reduced_pattern = pattern[:L-1]
+        else:
+            reduced_pattern = pattern
         if reduced_pattern not in passwords:
             passwords.append(reduced_pattern)
     L = L + 1
