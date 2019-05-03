@@ -19,9 +19,11 @@ flag_case_substitution = 0
 flag_character_substitution = 0
 min_length = 8
 max_length = 8
+
 pattern_list = []
 character_set = ""
 character_substitutions = {}
+patterns = {}
 
 
 #
@@ -39,15 +41,6 @@ def showUsage():
     print("")
     print("    Note: at least one of pattern list or character set must be defined")
 
-def print_pattern_old(prefix, pattern):
-    if len(pattern) > 0:
-        for n in character_substitutions[pattern[0]]:
-            aux = list(pattern)
-            aux[0] = n
-            new_pattern = ''.join(aux)
-            print_pattern(prefix + new_pattern[0], new_pattern[1:])
-    else:
-        print(prefix)
 
 def print_pattern(prefix, pattern):
     if len(pattern) > 0:
@@ -62,6 +55,26 @@ def print_pattern(prefix, pattern):
             print_pattern(prefix + pattern[0], pattern[1:])
     else:
         print(prefix)
+
+
+def build_patterns(original_pattern, prefix, pattern):
+    if len(pattern) > 0:
+        c = pattern[0]
+        if c in character_substitutions:
+            for n in character_substitutions[c]:
+                aux_pattern = list(pattern)
+                aux_pattern[0] = n
+                new_pattern = ''.join(aux_pattern)
+                build_patterns(original_pattern, prefix + new_pattern[0], new_pattern[1:])
+        else:
+            build_patterns(original_pattern, prefix + pattern[0], pattern[1:])
+    else:
+        if original_pattern in patterns:
+            patterns[original_pattern].append(prefix)
+        else:
+            patterns[original_pattern] = [ prefix ]
+
+
 
 #
 # Main
@@ -141,4 +154,5 @@ if flag_character_substitution == 1:
 
 if len(pattern_list) > 0:
     for pattern in pattern_list:
-        print_pattern("", pattern)
+        build_patterns(pattern, "", pattern)
+print(patterns)
